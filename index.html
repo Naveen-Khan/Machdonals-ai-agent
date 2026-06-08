@@ -220,16 +220,13 @@ body{font-family:var(--font-body);background:var(--black);color:var(--text);heig
 
 <script>
 // ════════════════════════════════════════════════════════
-//  CONFIG — Edit ONLY these two lines when deploying
+//  CONFIG — Paste your Railway n8n URL below
 // ════════════════════════════════════════════════════════
-const NGROK_URL   = '';   // ← Paste your ngrok URL here when deploying
-//                            e.g. 'https://abc123.ngrok-free.app'
-//                            Leave empty ('') to use localhost
+const RAILWAY_URL  = 'https://n8n-production-a44f.up.railway.app';
 
 const WEBHOOK_PATH = '/webhook/9c586978-d61f-45ce-ae00-9c274f07ee26/chat';
 
-// Auto-detect: use ngrok URL if set, otherwise use localhost
-const BASE_URL    = NGROK_URL.trim() || 'http://localhost:5678';
+const BASE_URL    = RAILWAY_URL.trim();
 const WEBHOOK_URL = BASE_URL + WEBHOOK_PATH;
 const SESSION_ID  = 'session-' + Math.random().toString(36).slice(2, 10);
 // ════════════════════════════════════════════════════════
