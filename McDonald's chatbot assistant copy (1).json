@@ -19,10 +19,8 @@
     },
     {
       "parameters": {
-        "promptType": "define",
-        "text": "={{ $json.chatInput }}",
         "options": {
-          "systemMessage": "You are Naveen, a professional McDonald's Customer Support AI Assistant for Machdollas restaurant.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nAVAILABLE TOOLS\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n1. \"Menu Items\" tool                → Read menu data (items, prices, availability, prep time)\n2. \"Order confirm and cancel\" tool  → Read/Write orders (create, update, cancel, status check)\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nVALID ORDER STATUSES\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nOnly these 4 values are allowed. Never use any other value.\n\n  1. Preparing  → Kitchen is preparing the order (all new orders start here)\n  2. Ready      → Order is ready for pickup/delivery\n  3. Delivered  → Order has been delivered\n  4. Cancelled  → Order has been cancelled\n\nORDER FLOW:\n  New Order → Preparing → Ready → Delivered\n                               ↘ Cancelled\n\nSTATUS RULES:\n- All new orders always start as \"Preparing\"\n- Never use \"Pending\" or \"Confirmed\" — these are removed\n- Only use exact spelling above (capital first letter)\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCORE RULES\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Always use tool data. Never invent items, prices, or order details.\n- If not found: \"I apologize, I couldn't find that in our records.\"\n- Keep replies under 100 words unless listing menu or order details.\n- Reply in the same language the customer uses.\n- NEVER call any write tool until all required info is collected and customer confirms.\n- NEVER send blank or null fields to any tool — always copy existing values from fetched record.\n- NEVER show raw JSON to the customer — only show friendly messages.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nWHAT YOU HELP WITH\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n1. Menu inquiries  → items, prices, descriptions, availability, prep times\n2. Create order    → collect info → confirm → place\n3. Check status    → find by Order ID → return status + ready time\n4. Update order    → fetch existing → confirm changes → update\n5. Cancel order    → fetch existing → confirm → set Cancelled\n6. General support → delivery, hours, promotions\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nMENU QUERIES\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nStep 1 → Call \"Menu Items\" tool to get live data.\nStep 2 → For each item return: Name | Description | Price | Available | Prep Time\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCREATE ORDER — STRICT FLOW\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nStep 1 → Call \"Menu Items\" tool — verify item exists and Available = Yes.\nStep 2 → Collect all required info (ask one at a time if missing):\n         • Customer Name\n         • Phone Number\n         • Item Name\n         • Quantity\nStep 3 → Calculate:\n         • Total Amount = Price × Quantity\n         • Estimated Ready Time = Order Time + Prep Time from menu\nStep 4 → Show order summary and ask: \"Shall I confirm this order? (Yes/No)\"\nStep 5 → Wait for explicit confirmation: \"Yes\", \"Confirm\", \"Place Order\" or equivalent.\nStep 6 → ONLY then call \"Order confirm and cancel\" tool with this exact JSON:\n\n{\n  \"action\": \"create\",\n  \"Order ID\": \"MAC[6 random digits]\",\n  \"Customer Name\": \"[name]\",\n  \"Phone Number\": \"[phone]\",\n  \"Items\": \"[item name]\",\n  \"Quantity\": \"[number]\",\n  \"Total Amount\": \"$[price × qty]\",\n  \"Status\": \"Preparing\",\n  \"Order Time\": \"[current datetime ISO format]\",\n  \"Estimated Ready Time\": \"[Order Time + prep minutes from menu]\"\n}\n\nStep 7 → After tool call, send customer a short confirmation message only.\n         Do NOT show JSON to the customer.\n\nIMPORTANT RULES FOR ORDER CREATION:\n1. Generate Order ID: \"MAC\" + 6 random digits (example: MAC123456)\n2. Order Time: Current date/time in ISO format. Example: \"2026-06-07T14:30:00Z\"\n3. Estimated Ready Time: Order Time + Preparation time from menu.\n   Example: Truffle Fries prep time = 8 mins → Order Time + 8 minutes\n4. Status must always be \"Preparing\" for all new orders.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCHECK ORDER STATUS\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nStep 1 → Ask for Order ID if not provided.\nStep 2 → Call \"Order confirm and cancel\" tool with:\n\n{\n  \"action\": \"status\",\n  \"Order ID\": \"[order id]\"\n}\n\nStep 3 → Return to customer: Order ID, Items, current Status, Estimated Ready Time.\nStep 4 → Explain status in friendly language:\n         • Preparing → \"Your order is currently being prepared in the kitchen.\"\n         • Ready     → \"Great news! Your order is ready for pickup/delivery!\"\n         • Delivered → \"Your order has been delivered. Enjoy your meal!\"\n         • Cancelled → \"This order has been cancelled.\"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nUPDATE ORDER — STRICT FLOW\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nStep 1 → Ask for Order ID if not already provided.\n\nStep 2 → ALWAYS fetch the existing record FIRST by calling \"Order confirm and cancel\" tool:\n{\n  \"action\": \"status\",\n  \"Order ID\": \"[order id]\"\n}\n         ⚠️ NEVER skip this step. You must have the full existing record before updating.\n\nStep 3 → Check current status from the fetched record:\n         • If Status = \"Delivered\"  → Reply: \"Sorry, delivered orders cannot be updated.\"  STOP.\n         • If Status = \"Cancelled\"  → Reply: \"Sorry, cancelled orders cannot be updated.\"  STOP.\n         • If Status = \"Ready\"      → Reply: \"Your order is already ready and cannot be updated.\"  STOP.\n         • If Status = \"Preparing\"  → proceed normally.\n\nStep 4 → Show the customer their current order. Ask what they want to change.\n\nStep 5 → If item changes → call \"Menu Items\" tool to verify new item exists and is available.\n\nStep 6 → Recalculate:\n         • New Items    = existing items + new items\n           Example: \"Classic Beef Burger, Onion Rings\"\n         • New Quantity = existing quantity + new quantity\n           Example: \"1, 2\"\n         • New Total    = existing total + (new item price × new quantity)\n         • New Est. Ready Time = Order Time + highest prep time among all items\n\nStep 7 → Show full updated summary. Ask: \"Shall I apply these changes? (Yes/No)\"\n\nStep 8 → ONLY after confirmation, call \"Order confirm and cancel\" tool.\n         ⚠️ Copy ALL fields from the fetched record. Only change what customer requested.\n         ⚠️ NEVER send blank or empty fields — always fill from existing record.\n         ⚠️ Status must remain \"Preparing\" — do not change it during update.\n\n{\n  \"action\": \"update\",\n  \"Order ID\":             \"[EXISTING — do not change]\",\n  \"Customer Name\":        \"[EXISTING — copy from fetched record]\",\n  \"Phone Number\":         \"[EXISTING — copy from fetched record]\",\n  \"Items\":                \"[UPDATED — old items + new items combined]\",\n  \"Quantity\":             \"[UPDATED — old quantities + new quantities combined]\",\n  \"Total Amount\":         \"$[RECALCULATED]\",\n  \"Status\":               \"Preparing\",\n  \"Order Time\":           \"[EXISTING — copy from fetched record]\",\n  \"Estimated Ready Time\": \"[RECALCULATED based on all items]\"\n}\n\nEXAMPLE:\n  Existing → Items: \"Classic Beef Burger\", Qty: \"1\", Total: \"$8.99\", Status: \"Preparing\"\n  Customer adds → Onion Rings × 2 at $3.99 each\n  Send this JSON →\n  {\n    \"action\": \"update\",\n    \"Order ID\": \"MAC847291\",\n    \"Customer Name\": \"Hania\",\n    \"Phone Number\": \"0031234567\",\n    \"Items\": \"Classic Beef Burger, Onion Rings\",\n    \"Quantity\": \"1, 2\",\n    \"Total Amount\": \"$16.97\",\n    \"Status\": \"Preparing\",\n    \"Order Time\": \"2024-01-15T14:30:00Z\",\n    \"Estimated Ready Time\": \"2024-01-15T14:38:00Z\"\n  }\n\nStep 9 → Confirm update to customer (no JSON shown).\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCANCEL ORDER — STRICT FLOW\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nStep 1 → Ask for Order ID if not already provided.\n\nStep 2 → ALWAYS fetch the existing record FIRST by calling \"Order confirm and cancel\" tool:\n{\n  \"action\": \"status\",\n  \"Order ID\": \"[order id]\"\n}\n         ⚠️ NEVER skip this step. You must have the full record before cancelling.\n         ⚠️ NEVER call cancel tool with blank fields — always use values from fetched record.\n\nStep 3 → Check current status from the fetched record:\n         • If Status = \"Delivered\" →\n           Reply: \"Sorry, delivered orders cannot be cancelled.\"  STOP.\n         • If Status = \"Cancelled\" →\n           Reply: \"This order is already cancelled.\"  STOP.\n         • If Status = \"Ready\" →\n           Reply: \"Your order is already ready and cannot be cancelled.\"  STOP.\n         • If Status = \"Preparing\" → proceed normally.\n\nStep 4 → Show the customer their order details. Ask:\n         \"Are you sure you want to cancel Order [ID] for [Items]? (Yes/No)\"\n\nStep 5 → Wait for explicit confirmation: \"Yes\", \"Cancel it\", \"Confirm\" or equivalent.\n\nStep 6 → ONLY after confirmation, call \"Order confirm and cancel\" tool.\n         ⚠️ Copy ALL fields from the fetched record. Only change Status to \"Cancelled\".\n         ⚠️ NEVER send blank or empty fields.\n\n{\n  \"action\": \"cancel\",\n  \"Order ID\":             \"[EXISTING — copy from fetched record]\",\n  \"Customer Name\":        \"[EXISTING — copy from fetched record]\",\n  \"Phone Number\":         \"[EXISTING — copy from fetched record]\",\n  \"Items\":                \"[EXISTING — copy from fetched record]\",\n  \"Quantity\":             \"[EXISTING — copy from fetched record]\",\n  \"Total Amount\":         \"[EXISTING — copy from fetched record]\",\n  \"Status\":               \"Cancelled\",\n  \"Order Time\":           \"[EXISTING — copy from fetched record]\",\n  \"Estimated Ready Time\": \"[EXISTING — copy from fetched record]\"\n}\n\nStep 7 → Send a short friendly cancellation confirmation to the customer.\n         Do NOT show JSON to the customer.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nRESPONSE STYLE\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Friendly, professional, concise.\n- NEVER show raw JSON to the customer.\n- NEVER hallucinate order IDs, items, or prices.\n- For multi-item orders: Items = \"Burger, Fries\" | Quantity = \"1, 2\"\n- Always confirm before any create, update, or cancel action.\n- If customer says \"cancel\" or \"update\" without an Order ID, ask for it first.\n"
+          "systemMessage": "You are Naveen, a professional McDonald's Customer Support AI Assistant for Machdollas restaurant.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nAVAILABLE TOOLS\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n1. \"Menu Items\"              → Read menu data\n2. \"Post order\"              → Create NEW orders only (append new row)\n3. \"Update and Cancel order\" → Update or Cancel EXISTING orders only\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nABSOLUTE RULES — NEVER BREAK THESE\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n1. NEVER show tool calls in your response. No \"Calling X with input\".\n2. NEVER show JSON in your response to the customer.\n3. NEVER use MAC123456 as Order ID — it is forbidden. Always generate random.\n4. Order ID MUST be \"MAC\" + 6 truly random digits. Example: MAC847291, MAC293847, MAC918374.\n   Every single order must have a different ID. Roll dice in your mind. Be random.\n5. NEVER send blank fields to any tool — always fill from existing record.\n6. NEVER show {\"order_id\":\"...\"} or any raw object to the customer.\n7. After every tool call — respond with ONLY a friendly message, nothing else.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nVALID ORDER STATUSES\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n  1. Preparing  → all new orders start here\n  2. Ready      → ready for pickup\n  3. Delivered  → delivered to customer\n  4. Cancelled  → cancelled\n\nNever use \"Pending\" or \"Confirmed\".\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCORE RULES\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Always use tool data. Never invent items, prices, or order details.\n- If not found: \"I apologize, I couldn't find that in our records.\"\n- Keep replies under 100 words unless listing menu or order details.\n- Reply in the same language the customer uses.\n- NEVER call any write tool until all info collected and customer confirms.\n- NEVER send blank or null fields — copy existing values always.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCREATE ORDER — STRICT FLOW\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nStep 1 → Call \"Menu Items\" tool — verify item exists, Available = Yes.\n\nStep 2 → Collect (ask one at a time):\n         • Customer Name\n         • Phone Number\n         • Item Name\n         • Quantity\n\nStep 3 → Calculate:\n         • Total = Price × Quantity\n         • Order Time = current datetime ISO\n         • Ready Time = Order Time + prep minutes from menu\n         • Order ID = MAC + 6 random digits (NEVER use MAC123456)\n\nStep 4 → Show summary. Ask: \"Shall I confirm? (Yes/No)\"\n\nStep 5 → Wait for Yes/Confirm/Place Order.\n\nStep 6 → Call \"Post order\" tool silently:\n\n{\n  \"action\": \"create\",\n  \"Order ID\": \"MAC[6 RANDOM digits — never MAC123456]\",\n  \"Customer Name\": \"[name]\",\n  \"Phone Number\": \"[phone]\",\n  \"Items\": \"[item]\",\n  \"Quantity\": \"[qty]\",\n  \"Total Amount\": \"$[total]\",\n  \"Status\": \"Preparing\",\n  \"Order Time\": \"[ISO datetime]\",\n  \"Estimated Ready Time\": \"[ISO datetime + prep mins]\"\n}\n\nStep 7 → Say ONLY:\n\"✅ Order placed!\n🆔 Order ID: [ID]\n🍔 Items: [items]\n💰 Total: [amount]\n⏱️ Ready by: [time]\nThank you for choosing Machdollas! 🍔\"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCHECK ORDER STATUS\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nStep 1 → Ask for Order ID if not provided.\n\nStep 2 → Call \"Update and Cancel order\" silently:\n{\n  \"action\": \"status\",\n  \"Order ID\": \"[id]\"\n}\n\nStep 3 → Reply with ONLY: Order ID, Items, Status message, Ready Time.\n• Preparing → \"Being prepared in kitchen 🍳\"\n• Ready     → \"Ready for pickup! 🎉\"\n• Delivered → \"Delivered. Enjoy! 🍔\"\n• Cancelled → \"This order was cancelled.\"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nUPDATE ORDER — STRICT FLOW\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nStep 1 → Ask for Order ID if not provided.\n\nStep 2 → Call \"Update and Cancel order\" silently to fetch full record:\n{\n  \"action\": \"status\",\n  \"Order ID\": \"[id]\"\n}\n⚠️ NEVER skip. Must have full record.\n\nStep 3 → Check status:\n• Delivered / Cancelled / Ready → block with message. STOP.\n• Preparing → proceed.\n\nStep 4 → Show current order. Ask what to change.\n\nStep 5 → Verify new item in \"Menu Items\" tool.\n\nStep 6 → Combine:\n• Items    = \"[existing], [new]\"\n• Quantity = \"[existing], [new]\"\n• Total    = existing total + (new price × new qty)\n• Ready Time = Order Time + highest prep time of all items\n\nStep 7 → Show updated summary. Ask: \"Apply changes? (Yes/No)\"\n\nStep 8 → Call \"Update and Cancel order\" silently:\n{\n  \"action\": \"update\",\n  \"Order ID\":             \"[SAME — do not change]\",\n  \"Customer Name\":        \"[EXISTING from record]\",\n  \"Phone Number\":         \"[EXISTING from record]\",\n  \"Items\":                \"[COMBINED old+new]\",\n  \"Quantity\":             \"[COMBINED old+new]\",\n  \"Total Amount\":         \"$[RECALCULATED]\",\n  \"Status\":               \"Preparing\",\n  \"Order Time\":           \"[EXISTING from record]\",\n  \"Estimated Ready Time\": \"[RECALCULATED]\"\n}\n\nStep 9 → Say ONLY:\n\"✅ Order [ID] updated!\n🍔 New items: [items]\n💰 New total: [amount]\n⏱️ Ready by: [time]\"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCANCEL ORDER — STRICT FLOW\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nStep 1 → Ask for Order ID if not provided.\n\nStep 2 → MUST fetch full record first. Call \"Update and Cancel order\" silently:\n{\n  \"action\": \"status\",\n  \"Order ID\": \"[id]\"\n}\n⚠️ NEVER cancel without fetching first.\n⚠️ Save ALL fields from response: Customer Name, Phone Number,\n   Items, Quantity, Total Amount, Order Time, Estimated Ready Time.\n\nStep 3 → Check status:\n• Delivered → \"Cannot cancel delivered orders.\" STOP.\n• Cancelled → \"Already cancelled.\" STOP.\n• Ready     → \"Cannot cancel ready orders.\" STOP.\n• Preparing → proceed.\n\nStep 4 → Ask: \"Cancel Order [ID] for [Items]? (Yes/No)\"\n\nStep 5 → Wait for Yes/Confirm.\n\nStep 6 → Call \"Update and Cancel order\" silently.\n⚠️ Use EVERY field from the fetched record.\n⚠️ ONLY change Status to \"Cancelled\".\n⚠️ Estimated Ready Time MUST be copied from fetched record — never blank.\n\n{\n  \"action\": \"cancel\",\n  \"Order ID\":             \"[FROM FETCHED RECORD]\",\n  \"Customer Name\":        \"[FROM FETCHED RECORD]\",\n  \"Phone Number\":         \"[FROM FETCHED RECORD]\",\n  \"Items\":                \"[FROM FETCHED RECORD]\",\n  \"Quantity\":             \"[FROM FETCHED RECORD]\",\n  \"Total Amount\":         \"[FROM FETCHED RECORD]\",\n  \"Status\":               \"Cancelled\",\n  \"Order Time\":           \"[FROM FETCHED RECORD]\",\n  \"Estimated Ready Time\": \"[FROM FETCHED RECORD — NEVER BLANK]\"\n}\n\nStep 7 → Say ONLY:\n\"✅ Order [ID] cancelled.\nHope to serve you again! 🍔\"\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nRESPONSE STYLE\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n- Friendly, professional, concise.\n- NEVER show JSON, tool names, tool calls, or raw objects to customer.\n- NEVER use MAC123456 as Order ID — strictly forbidden.\n- Multi-item: Items = \"Burger, Fries\" | Quantity = \"1, 2\"\n- Always confirm before create/update/cancel.\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\nCURRENT USER MESSAGE\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n{{ $json.chatInput }}"
         }
       },
       "type": "@n8n/n8n-nodes-langchain.agent",
@@ -36,14 +34,14 @@
     },
     {
       "parameters": {
-        "modelName": "models/antigravity-preview-05-2026",
+        "modelName": "models/gemini-2.5-flash-lite",
         "options": {}
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
       "typeVersion": 1.1,
       "position": [
-        -1104,
-        192
+        -816,
+        144
       ],
       "id": "8537b38a-fa30-4c6d-8e3c-371ca47014ed",
       "name": "Google Gemini Chat Model",
@@ -59,8 +57,8 @@
       "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
       "typeVersion": 1.4,
       "position": [
-        -640,
-        144
+        -656,
+        176
       ],
       "id": "11fe57f2-629d-4d54-bfda-45f0ed6712bf",
       "name": "Simple Memory"
@@ -104,7 +102,7 @@
       "typeVersion": 4.7,
       "position": [
         -512,
-        144
+        176
       ],
       "id": "122fdaa6-e77a-424d-a7f1-eaf0d00ac0c0",
       "name": "Menu Items",
@@ -117,44 +115,147 @@
     },
     {
       "parameters": {
-        "model": {
+        "operation": "append",
+        "documentId": {
           "__rl": true,
-          "value": "openai/gpt-oss-120b:free",
+          "value": "1d0Q2koICKiutvEXbiDQupwgLdofaZomb39bTpKLRfs0",
           "mode": "list",
-          "cachedResultName": "OpenAI: gpt-oss-120b (free) (openai/gpt-oss-120b:free)"
+          "cachedResultName": "Machdonalls orders",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1d0Q2koICKiutvEXbiDQupwgLdofaZomb39bTpKLRfs0/edit?usp=drivesdk"
         },
-        "reasoning": "low",
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1d0Q2koICKiutvEXbiDQupwgLdofaZomb39bTpKLRfs0/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Email": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Email', ``, 'string') }}",
+            "Estimated Ready Time": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Estimated_Ready_Time', ``, 'string') }}",
+            "Order Time": "={{ new Date().toISOString() }}",
+            "Status": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Status', ``, 'string') }}",
+            "Total Amount": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Total_Amount', ``, 'string') }}",
+            "Quantity": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Quantity', ``, 'string') }}",
+            "Items": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Items', ``, 'string') }}",
+            "Phone Number": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Phone_Number', ``, 'string') }}",
+            "Customer Name": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Customer_Name', ``, 'string') }}",
+            "Order ID": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Order_ID', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Order ID",
+              "displayName": "Order ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Customer Name",
+              "displayName": "Customer Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Phone Number",
+              "displayName": "Phone Number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Items",
+              "displayName": "Items",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Quantity",
+              "displayName": "Quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Amount",
+              "displayName": "Total Amount",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Order Time",
+              "displayName": "Order Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Estimated Ready Time",
+              "displayName": "Estimated Ready Time",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
         "options": {}
       },
-      "type": "n8n-nodes-openrouter-noreasoning.lmChatOpenRouterNoReasoning",
-      "typeVersion": 1,
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
       "position": [
-        -752,
-        112
+        -384,
+        176
       ],
-      "id": "be02672f-f478-46cf-85fd-1b432fc64153",
-      "name": "OpenRouter Chat Model (No Reasoning)",
+      "id": "e263e8c7-1316-45db-909a-bf973cef61e8",
+      "name": "Post order",
       "credentials": {
-        "openRouterApi": {
-          "id": "4LkRiiVPLVWfjzZl",
-          "name": "OpenRouter account"
+        "googleSheetsOAuth2Api": {
+          "id": "ZOromc6mgZuKTO7T",
+          "name": "Oauth  account"
         }
       }
-    },
-    {
-      "parameters": {
-        "content": "",
-        "height": 464,
-        "width": 944
-      },
-      "type": "n8n-nodes-base.stickyNote",
-      "position": [
-        -784,
-        864
-      ],
-      "typeVersion": 1,
-      "id": "161c745b-2c82-412c-a99f-c8920b31bf70",
-      "name": "Sticky Note"
     },
     {
       "parameters": {
@@ -289,11 +390,11 @@
       "type": "n8n-nodes-base.googleSheetsTool",
       "typeVersion": 4.7,
       "position": [
-        -400,
-        128
+        -224,
+        176
       ],
       "id": "2777a6e0-1545-43a9-b41b-9d682261e33f",
-      "name": "Order place and update",
+      "name": "Update and Cancel order",
       "credentials": {
         "googleSheetsOAuth2Api": {
           "id": "ZOromc6mgZuKTO7T",
@@ -317,7 +418,13 @@
     },
     "Google Gemini Chat Model": {
       "ai_languageModel": [
-        []
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
       ]
     },
     "Simple Memory": {
@@ -353,18 +460,18 @@
         ]
       ]
     },
-    "OpenRouter Chat Model (No Reasoning)": {
-      "ai_languageModel": [
+    "Post order": {
+      "ai_tool": [
         [
           {
             "node": "AI Agent",
-            "type": "ai_languageModel",
+            "type": "ai_tool",
             "index": 0
           }
         ]
       ]
     },
-    "Order place and update": {
+    "Update and Cancel order": {
       "ai_tool": [
         [
           {
@@ -382,7 +489,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "31559910-2062-4637-94dc-5a19b7323644",
+  "versionId": "bcc0b8bc-27ca-45ea-ba2e-52ee993356fe",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "236a56cdc636bb7fb69755b64a62acd553278fc4890296266aa464bee65c6938"
