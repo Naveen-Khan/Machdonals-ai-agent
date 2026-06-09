@@ -59,17 +59,6 @@ This project uses a decoupled architecture for maximum scalability and 24/7 upti
 - The frontend connects to the backend via the `RAILWAY_URL` configured in `index.html`.
 - Pushing the code to the `main` branch automatically triggers a deployment on Vercel thanks to the `vercel.json` configuration.
 
-## ⚙️ Configuration
-
-To point the frontend to a different n8n instance, update the configuration block in `index.html`:
-
-```javascript
-//  CONFIG — Paste your Railway n8n URL below
-// ════════════════════════════════════════════════════════
-const RAILWAY_URL  = 'https://n8n-production-a44f.up.railway.app';
-const WEBHOOK_PATH = '/webhook/9c586978-d61f-45ce-ae00-9c274f07ee26/chat';
-// ════════════════════════════════════════════════════════
-```
 
 ## 📝 License
-This project is for educational/portfolio purposes.
+This project is for educational/portfolio purposes. 
