@@ -1,60 +1,113 @@
-# 🍔 Machdollas AI Customer Support Agent
+# 🍔 Machdollas AI Customer Support
 
-A production-ready AI customer support chatbot designed for Machdollas (a McDonald's-style restaurant). This project provides an interactive, modern web interface that communicates seamlessly with a robust **n8n** automation backend to handle customer queries, track orders, and display menu options.
+An AI-powered customer support chatbot for Machdollas restaurant, built with n8n, Google Sheets, and a custom HTML frontend.
 
-![Machdollas Chatbot](https://img.shields.io/badge/Status-Active-success.svg)
-![Frontend](https://img.shields.io/badge/Frontend-HTML%2FVanilla%20JS-blue)
-![Backend](https://img.shields.io/badge/Backend-n8n%20Automation-orange)
-![Deployment](https://img.shields.io/badge/Deployed%20on-Vercel%20%26%20Railway-black)
+---
 
 ## ✨ Features
 
-- **Real-Time Chat Interface**: A beautiful, dark-themed UI with glassmorphism elements, micro-animations, and smooth transitions.
-- **Smart AI Routing**: Powered by an n8n webhook, the agent intelligently handles natural language queries.
-- **Quick Actions**: One-click quick reply buttons for common tasks like "View Menu", "Place Order", "Track Order", and "Cancel Order".
-- **Dynamic Typing Indicators**: Simulates human-like response times with animated typing dots.
-- **Responsive Design**: Fully optimized for both desktop and mobile devices.
+- 📋 **View Menu** — Browse items, prices, and availability
+- 🛒 **Place Orders** — AI collects order details and confirms before placing
+- 📦 **Track Orders** — Check real-time order status by Order ID
+- ✏️ **Update Orders** — Add items to existing orders
+- ❌ **Cancel Orders** — Cancel orders that are still being prepared
+- 📧 **Email Confirmation** — Automatic confirmation email on order placement
 
-## 🛠️ Technology Stack
+---
 
-- **Frontend**: HTML5, CSS3 (Vanilla), JavaScript
-- **Backend / Automation Flow**: [n8n](https://n8n.io/)
-- **Frontend Hosting**: [Vercel](https://vercel.com)
-- **Backend Hosting**: [Railway](https://railway.app)
+## 🛠️ Tech Stack
 
-## 🚀 Architecture & Deployment
+| Layer | Technology |
+|---|---|
+| AI Agent | n8n + OpenRouter (LLM) |
+| Database | Google Sheets |
+| Frontend | HTML + Tailwind CSS |
+| Hosting (backend) | Railway |
+| Hosting (frontend) | Vercel |
+| Email | Gmail (via n8n) |
 
-This project uses a decoupled architecture for maximum scalability and 24/7 uptime:
+---
 
-1. **Frontend (`index.html`)**: Hosted statically on Vercel. Contains the UI logic and sends `POST` requests to the n8n backend.
-2. **Backend (n8n)**: Hosted continuously on Railway. Processes incoming webhooks, executes the AI/logic workflow, and returns JSON responses.
+## 📁 Project Structure
 
-### Deployment Guide
-
-#### 1. Backend (n8n on Railway)
-- Deploy the n8n Docker image to Railway.
-- Expose the following environment variables:
-  - `N8N_PORT=5678`
-  - `WEBHOOK_URL=https://<your-railway-app-url>`
-  - `N8N_CORS_ORIGIN=*` *(Required to accept requests from the Vercel frontend)*
-- Import the provided `McDonald's chatbot assistant copy (1).json` workflow into n8n.
-- **Crucial**: Ensure the workflow is toggled to **Active** so the production webhook is registered.
-
-#### 2. Frontend (Vercel)
-- The frontend connects to the backend via the `RAILWAY_URL` configured in `index.html`.
-- Pushing the code to the `main` branch automatically triggers a deployment on Vercel thanks to the `vercel.json` configuration.
-
-## ⚙️ Configuration
-
-To point the frontend to a different n8n instance, update the configuration block in `index.html`:
-
-```javascript
-//  CONFIG — Paste your Railway n8n URL below
-// ════════════════════════════════════════════════════════
-const RAILWAY_URL  = 'https://n8n-production-a44f.up.railway.app';
-const WEBHOOK_PATH = '/webhook/9c586978-d61f-45ce-ae00-9c274f07ee26/chat';
-// ════════════════════════════════════════════════════════
+```
+machdollas-ai/
+├── index.html          → Chat frontend (deployed on Vercel)
+├── workflow.json       → n8n workflow (deployed on Railway)
+└── README.md           → This file
 ```
 
-## 📝 License
-This project is for educational/portfolio purposes.
+---
+
+## ⚙️ Setup
+
+### 1. n8n (Railway)
+- Deploy n8n on Railway using the n8n template
+- Import `workflow.json`
+- Add credentials: Google Sheets, OpenRouter, Gmail
+- Set environment variables:
+  ```
+  N8N_CORS_ORIGIN = *
+  WEBHOOK_URL     = https://your-app.railway.app
+  N8N_HOST        = 0.0.0.0
+  N8N_PORT        = 5678
+  ```
+- Activate the workflow
+
+### 2. Frontend (Vercel)
+- Update webhook URL in `index.html`:
+  ```js
+  const webhookUrl = 'https://your-app.railway.app/webhook/YOUR-ID/chat';
+  ```
+- Deploy `index.html` on Vercel
+
+---
+
+## 📊 Google Sheets Structure
+
+### Sheet 1 — Menu Items
+| Category | Item Name | Description | Price | Available | Prep Time |
+
+### Sheet 2 — Orders
+| Order ID | Customer Name | Phone | Items | Quantity | Total | Status | Order Time | Estimated Ready Time |
+
+---
+
+## 🔄 Order Flow
+
+```
+Customer Message
+      ↓
+  AI Agent (Naveen)
+      ↓
+Place Order → Google Sheets (append)
+Update/Cancel → Google Sheets (update by Order ID)
+      ↓
+Respond to Customer
+```
+
+---
+
+## 📌 Order Statuses
+
+| Status | Meaning |
+|---|---|
+| Preparing | Order received, kitchen working on it |
+| Ready | Order ready for pickup/delivery |
+| Delivered | Order delivered to customer |
+| Cancelled | Order cancelled |
+
+---
+
+## 🤖 AI Agent
+
+- **Name:** Naveen
+- **Model:** Google Gemini (via OpenRouter)
+- **Memory:** Simple Buffer Window Memory
+- **Tools:** Menu Items, Post Order, Update and Cancel Order
+
+---
+
+## 👤 Author
+
+Built by **[Your Name]**
