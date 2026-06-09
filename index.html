@@ -220,13 +220,13 @@ body{font-family:var(--font-body);background:var(--black);color:var(--text);heig
 
 <script>
 // ════════════════════════════════════════════════════════
-//  CONFIG — Paste your ngrok n8n URL below
+//  CONFIG — Paste your Railway n8n URL below
 // ════════════════════════════════════════════════════════
-const NGROK_URL  = 'https://ladder-anybody-faucet.ngrok-free.dev';
+const RAILWAY_URL  = 'https://n8n-production-a44f.up.railway.app';
 
 const WEBHOOK_PATH = '/webhook/9c586978-d61f-45ce-ae00-9c274f07ee26/chat';
 
-const BASE_URL    = NGROK_URL.trim();
+const BASE_URL    = RAILWAY_URL.trim();
 const WEBHOOK_URL = BASE_URL + WEBHOOK_PATH;
 const SESSION_ID  = 'session-' + Math.random().toString(36).slice(2, 10);
 // ════════════════════════════════════════════════════════
