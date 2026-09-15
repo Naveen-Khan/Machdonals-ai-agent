@@ -401,6 +401,17 @@
           "name": "Oauth  account"
         }
       }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1104,
+        -144
+      ],
+      "id": "a18bb68a-cf3a-4f73-96ff-9435cd8cf8c0",
+      "name": "Sticky Note"
     }
   ],
   "pinData": {},
@@ -489,7 +500,7 @@
     "binaryMode": "separate",
     "availableInMCP": false
   },
-  "versionId": "bcc0b8bc-27ca-45ea-ba2e-52ee993356fe",
+  "versionId": "584436d6-ba7a-42df-bb9f-88f4415dfbc3",
   "meta": {
     "templateCredsSetupCompleted": true,
     "instanceId": "236a56cdc636bb7fb69755b64a62acd553278fc4890296266aa464bee65c6938"
